@@ -1,0 +1,13 @@
+{
+  "$schema": "https://github.com/garrytan/gstack/docs/pregate.md#pregate-v1",
+  "runner": "python3 -m unittest {files}",
+  "dependencies": {
+    "docs/**": ["tests/test_package_public.py"],
+    "examples/**": ["tests/test_package_public.py"]
+  },
+  "selection": {},
+  "warn": [],
+  "strays": {
+    "allow": ["examples", ".gstack"]
+  }
+}

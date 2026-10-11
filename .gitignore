@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.DS_Store
+dist/
+# Local credentials and research outputs never enter the distribution repo.
+.env
+.env.*
+*.key
+out/
+cache/

@@ -1,0 +1,173 @@
+{
+  "version": "0.1.0-beta.5",
+  "license": "MIT",
+  "kind": "implementation_only",
+  "path_base": "zip_root",
+  "excluded": [
+    "research",
+    "archive",
+    "evaluations",
+    "internal_review_artifacts",
+    "docs/internal",
+    "dist",
+    "host_configuration",
+    "private_evidence"
+  ],
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 1072,
+      "sha256": "d8af538f71cd6e8ad2f2ab0b9c645b14bdd42da7247e3ed7cb3b6a9b0e595af4"
+    },
+    {
+      "path": "PRD.md",
+      "bytes": 25351,
+      "sha256": "52a063b5e8b99982c8cc501181e6c9b9a446b7d8ebf0ed14d7f0730908f3869e"
+    },
+    {
+      "path": "README.md",
+      "bytes": 13792,
+      "sha256": "b5385b70030c562d63577e31ec1cf0a95ab48201919675e4078a8052c96c257f"
+    },
+    {
+      "path": "VERSION",
+      "bytes": 13,
+      "sha256": "e3da5d8a391cbe7d0438d0d1250a740fc2f2b1bdc1160b20fd234c230b1fee56"
+    },
+    {
+      "path": "docs/ACCEPTANCE-CRITERIA.md",
+      "bytes": 18730,
+      "sha256": "6d786c327b8e6e6fecbe12e5ca8402e7aba9e90681563f1f8fa1096b819193f7"
+    },
+    {
+      "path": "docs/EVALUATION.md",
+      "bytes": 4450,
+      "sha256": "74ab407566569befec7c48e485358022911894a0521a6d737d28fb337b3a131b"
+    },
+    {
+      "path": "docs/HOW-IT-WORKS.md",
+      "bytes": 11732,
+      "sha256": "3b48b5be42aeddd5bd34c630bc20f983d8ab085e6f0315bb73d5e9d7a2ef4b2b"
+    },
+    {
+      "path": "docs/TESTING.md",
+      "bytes": 7336,
+      "sha256": "67ae488fd410c5b449fb2a88abe826ab0aeb0058c6192a225a1fc64e4fa8e1b0"
+    },
+    {
+      "path": "docs/WORKSPACE-ARCHITECTURE.md",
+      "bytes": 7225,
+      "sha256": "55dad401b2e1aeae144b974b69c67ce19de2fa4db68fb7b70fd59375711e5311"
+    },
+    {
+      "path": "examples/README.md",
+      "bytes": 2069,
+      "sha256": "034afb7466f93bb54b606be79c1bce2790406756b4156e1c25d13d9aa007651f"
+    },
+    {
+      "path": "examples/sample-dossier/01-reports/executive.md",
+      "bytes": 1610,
+      "sha256": "071db8ce60e883f50f3dae10303d77fdeee834a9c9396c2d0df32865ef09a92c"
+    },
+    {
+      "path": "examples/sample-dossier/01-reports/final-conclusion.md",
+      "bytes": 1539,
+      "sha256": "e3d2317b5156ecb41cc75ed5c26c64483a4f8c60bd7926a7d926133c972ad00e"
+    },
+    {
+      "path": "examples/sample-dossier/02-studies/01-attachment-portability.md",
+      "bytes": 2565,
+      "sha256": "f49ea1b067e4122c9822d0eec1cdefab42c29645c02b0d4eb2d1fab1d6af877b"
+    },
+    {
+      "path": "examples/sample-dossier/02-studies/02-customer-identity.md",
+      "bytes": 1296,
+      "sha256": "bf7659376e9ac337eca288cead5d2d03b8e9e34c28d900cd163928d18a59086d"
+    },
+    {
+      "path": "examples/sample-dossier/03-sources/fictional-export-guide.md",
+      "bytes": 1431,
+      "sha256": "4d415efb689f41bd4b26288e378aebdc47065b6310089071a600bc7fcb1c00c0"
+    },
+    {
+      "path": "examples/sample-dossier/05-research-log/2026-10-08-demo/brief.md",
+      "bytes": 2084,
+      "sha256": "a52144c0cfcab01f7dd934aa9fdc456a1d2c40f039d1511faea013b8d3a05a7d"
+    },
+    {
+      "path": "examples/sample-dossier/05-research-log/2026-10-08-demo/reviews/claim-check.md",
+      "bytes": 1747,
+      "sha256": "d9624fd702e20412eff80b536ec6f66e225482ae715a907d248e15c897011c1f"
+    },
+    {
+      "path": "examples/sample-dossier/README.md",
+      "bytes": 3840,
+      "sha256": "67d1f54ca79409e6985178a9cb5676cddecff91606789d1cfc1d8b3a4f3c7dae"
+    },
+    {
+      "path": "scripts/package_public.py",
+      "bytes": 7310,
+      "sha256": "3293bd9cbd05735e52c3c51d83400bc52c84330c36df7bf0124f53fb45042798"
+    },
+    {
+      "path": "skill/LICENSE",
+      "bytes": 1072,
+      "sha256": "d8af538f71cd6e8ad2f2ab0b9c645b14bdd42da7247e3ed7cb3b6a9b0e595af4"
+    },
+    {
+      "path": "skill/SKILL.md",
+      "bytes": 11667,
+      "sha256": "c75726916815fdfca7a4612b9a145e636cac16bdf99374e6d632108853fe64cf"
+    },
+    {
+      "path": "skill/assets/agent-handoff.md",
+      "bytes": 3110,
+      "sha256": "509968a4fda2975b13a25f693f8c169bcb14f3455cac0a5d918d78fd28cfd312"
+    },
+    {
+      "path": "skill/assets/claim-check.md",
+      "bytes": 1687,
+      "sha256": "9a4ab32fdc314cc90e2ef36780d77a74f0ddb998e0ca33cd39731a502fa55866"
+    },
+    {
+      "path": "skill/assets/first-delivery.md",
+      "bytes": 2684,
+      "sha256": "8246602e736f6205f02034f16d5c6e4fadde052830aed97e2a45fa1e040fe114"
+    },
+    {
+      "path": "skill/references/conclusion-audit.md",
+      "bytes": 8663,
+      "sha256": "1c80390637ae8a8996d65d6ade09ff0384428dba4b0ecb17bb8a19e4b8db501b"
+    },
+    {
+      "path": "skill/references/delivery-checks.md",
+      "bytes": 14234,
+      "sha256": "d098b4a56ab1375d437faf094a7f559086d8f3dc991dfbbcd9a2af88469a761f"
+    },
+    {
+      "path": "skill/references/studies-and-delivery.md",
+      "bytes": 10750,
+      "sha256": "72e99371b286430d8b2a18ff0816a3f853e68280d2dee89adbe913ab27fcc214"
+    },
+    {
+      "path": "skill/references/workspace-and-updates.md",
+      "bytes": 11323,
+      "sha256": "fd6cea3c8ab6aa658c7b40311ab4c7c67c9f3e7ae771958ecd3dbf2271895505"
+    },
+    {
+      "path": "skill/scripts/delivery.py",
+      "bytes": 52934,
+      "sha256": "a1c660bed32b816c6ab3154ef66ebb7c182fe2aa38a8289a9f7e97195dab6b78"
+    },
+    {
+      "path": "tests/test_delivery.py",
+      "bytes": 77736,
+      "sha256": "9263e86337387ea91f5e0fb074824bd91c33bc7c5ed15f03b90a5aee24b348b0"
+    },
+    {
+      "path": "tests/test_package_public.py",
+      "bytes": 10918,
+      "sha256": "ac622b0bb9762325c5ff910b5a97bd461a16b7a60eed82c87dd46d192e9ec383"
+    }
+  ]
+}

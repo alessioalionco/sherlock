@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Local guard for the standalone skill repository. Install with tools/install-hooks.sh.
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+fail=0
+log=$(mktemp "${TMPDIR:-/tmp}/sherlock-prepush.XXXXXX") || exit 1
+trap 'rm -f "$log"' EXIT
+
+echo 'pre-push: Sherlock tests'
+test_python=${SHERLOCK_TEST_PYTHON:-python3}
+if ! "$test_python" -c 'import markdown, fitz' >/dev/null 2>&1; then
+    echo "  FAILED: $test_python needs Markdown and PyMuPDF; set SHERLOCK_TEST_PYTHON to a full test environment"
+    fail=1
+elif "$test_python" -m unittest discover -s tests -v >"$log" 2>&1; then
+    tail -4 "$log"
+else
+    echo '  FAILED'
+    tail -20 "$log"
+    fail=1
+fi
+
+echo 'pre-push: tracked-file credentials'
+pattern='sk-or-v1-[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9-]{20,}|sk-proj-[A-Za-z0-9_-]{20,}'
+pattern="$pattern"'|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}'
+pattern="$pattern"'|postgres(ql)?://[^[:space:]]*:[^[:space:]@]+@|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+git grep -IlE "$pattern" -- . ':(exclude).githooks/pre-push' >"$log" 2>&1
+grep_status=$?
+if [ "$grep_status" -eq 0 ]; then
+    echo '  FAILED: credential-shaped text is tracked in:'
+    cat "$log"
+    fail=1
+elif [ "$grep_status" -eq 1 ]; then
+    echo '  ok'
+else
+    echo '  FAILED: tracked-file scan did not complete'
+    fail=1
+fi
+
+echo 'pre-push: Git history credentials'
+if command -v gitleaks >/dev/null 2>&1; then
+    if gitleaks git --no-banner --redact --log-level warn . >"$log" 2>&1; then
+        echo '  ok'
+    else
+        echo '  FAILED'
+        tail -20 "$log"
+        fail=1
+    fi
+else
+    echo '  FAILED: install gitleaks to scan Git history'
+    fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+    echo 'pre-push REFUSED'
+    exit 1
+fi
+echo 'pre-push: clear'
