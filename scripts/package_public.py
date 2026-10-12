@@ -60,6 +60,7 @@ PUBLIC_FILES = {
     'docs/HOW-IT-WORKS.md': 'docs/HOW-IT-WORKS.md',
     'examples/README.md': 'examples/README.md',
     'examples/sample-dossier/README.md': 'examples/sample-dossier/README.md',
+    'examples/sample-dossier/INVENTORY.json': 'examples/sample-dossier/INVENTORY.json',
     'examples/sample-dossier/01-reports/executive.md': 'examples/sample-dossier/01-reports/executive.md',
     'examples/sample-dossier/01-reports/final-conclusion.md': 'examples/sample-dossier/01-reports/final-conclusion.md',
     'examples/sample-dossier/02-studies/01-attachment-portability.md': 'examples/sample-dossier/02-studies/01-attachment-portability.md',

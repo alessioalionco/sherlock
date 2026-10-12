@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.6",
   "license": "MIT",
   "kind": "implementation_only",
   "path_base": "zip_root",
@@ -32,7 +32,7 @@
     {
       "path": "VERSION",
       "bytes": 13,
-      "sha256": "e3da5d8a391cbe7d0438d0d1250a740fc2f2b1bdc1160b20fd234c230b1fee56"
+      "sha256": "a9d9f9ca047ff3c2752ea15d284690307c73d0adf24bd90277385be9faa25e64"
     },
     {
       "path": "docs/ACCEPTANCE-CRITERIA.md",
@@ -100,14 +100,19 @@
       "sha256": "d9624fd702e20412eff80b536ec6f66e225482ae715a907d248e15c897011c1f"
     },
     {
+      "path": "examples/sample-dossier/INVENTORY.json",
+      "bytes": 1299,
+      "sha256": "647080fe176977f1f16fe4a5a7221140241b46ebcc802f3379ccaf9d42bc39a3"
+    },
+    {
       "path": "examples/sample-dossier/README.md",
       "bytes": 3840,
       "sha256": "67d1f54ca79409e6985178a9cb5676cddecff91606789d1cfc1d8b3a4f3c7dae"
     },
     {
       "path": "scripts/package_public.py",
-      "bytes": 7310,
-      "sha256": "3293bd9cbd05735e52c3c51d83400bc52c84330c36df7bf0124f53fb45042798"
+      "bytes": 7398,
+      "sha256": "4bc62d654f156754c49ee9048a2b8a344766cb9812caf0243479ee8d781fa8b9"
     },
     {
       "path": "skill/LICENSE",
@@ -166,8 +171,8 @@
     },
     {
       "path": "tests/test_package_public.py",
-      "bytes": 10918,
-      "sha256": "ac622b0bb9762325c5ff910b5a97bd461a16b7a60eed82c87dd46d192e9ec383"
+      "bytes": 19734,
+      "sha256": "a12fc065a5a67cca35ff20ce5a553c2c4ac6d2540ec5c7465d747b46bd31a2fa"
     }
   ]
 }

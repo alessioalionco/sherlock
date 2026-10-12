@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "path_base": "dossier_root",
+  "files": {
+    "01-reports/executive.md": {
+      "bytes": 1610,
+      "sha256": "071db8ce60e883f50f3dae10303d77fdeee834a9c9396c2d0df32865ef09a92c"
+    },
+    "01-reports/final-conclusion.md": {
+      "bytes": 1539,
+      "sha256": "e3d2317b5156ecb41cc75ed5c26c64483a4f8c60bd7926a7d926133c972ad00e"
+    },
+    "02-studies/01-attachment-portability.md": {
+      "bytes": 2565,
+      "sha256": "f49ea1b067e4122c9822d0eec1cdefab42c29645c02b0d4eb2d1fab1d6af877b"
+    },
+    "02-studies/02-customer-identity.md": {
+      "bytes": 1296,
+      "sha256": "bf7659376e9ac337eca288cead5d2d03b8e9e34c28d900cd163928d18a59086d"
+    },
+    "03-sources/fictional-export-guide.md": {
+      "bytes": 1431,
+      "sha256": "4d415efb689f41bd4b26288e378aebdc47065b6310089071a600bc7fcb1c00c0"
+    },
+    "05-research-log/2026-10-08-demo/brief.md": {
+      "bytes": 2084,
+      "sha256": "a52144c0cfcab01f7dd934aa9fdc456a1d2c40f039d1511faea013b8d3a05a7d"
+    },
+    "05-research-log/2026-10-08-demo/reviews/claim-check.md": {
+      "bytes": 1747,
+      "sha256": "d9624fd702e20412eff80b536ec6f66e225482ae715a907d248e15c897011c1f"
+    },
+    "README.md": {
+      "bytes": 3840,
+      "sha256": "67d1f54ca79409e6985178a9cb5676cddecff91606789d1cfc1d8b3a4f3c7dae"
+    }
+  }
+}
