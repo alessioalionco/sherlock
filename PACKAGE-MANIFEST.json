@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0-beta.6",
+  "version": "0.1.0-beta.7",
   "license": "MIT",
   "kind": "implementation_only",
   "path_base": "zip_root",
@@ -27,12 +27,12 @@
     {
       "path": "README.md",
       "bytes": 13792,
-      "sha256": "b5385b70030c562d63577e31ec1cf0a95ab48201919675e4078a8052c96c257f"
+      "sha256": "548859bd52cefc3cc763d1372cdd73967da345ed93dc5271955ccd4a138c498a"
     },
     {
       "path": "VERSION",
       "bytes": 13,
-      "sha256": "a9d9f9ca047ff3c2752ea15d284690307c73d0adf24bd90277385be9faa25e64"
+      "sha256": "9936cd2e59f9463923dff69056021762bfe62ea5eb8c6cb36ba9eb38cfb15e28"
     },
     {
       "path": "docs/ACCEPTANCE-CRITERIA.md",
@@ -51,8 +51,8 @@
     },
     {
       "path": "docs/TESTING.md",
-      "bytes": 7336,
-      "sha256": "67ae488fd410c5b449fb2a88abe826ab0aeb0058c6192a225a1fc64e4fa8e1b0"
+      "bytes": 7888,
+      "sha256": "4fd734fbc119b2b40d5381d6ff003fa7d0c0937a073de81cd6eb66e511affb5f"
     },
     {
       "path": "docs/WORKSPACE-ARCHITECTURE.md",
@@ -146,8 +146,8 @@
     },
     {
       "path": "skill/references/delivery-checks.md",
-      "bytes": 14234,
-      "sha256": "d098b4a56ab1375d437faf094a7f559086d8f3dc991dfbbcd9a2af88469a761f"
+      "bytes": 15051,
+      "sha256": "6490017e5f93c246c3242b27c66b8c7a8874c2b8c5db69e49ddfd87e1d8d9796"
     },
     {
       "path": "skill/references/studies-and-delivery.md",
@@ -161,18 +161,18 @@
     },
     {
       "path": "skill/scripts/delivery.py",
-      "bytes": 52934,
-      "sha256": "a1c660bed32b816c6ab3154ef66ebb7c182fe2aa38a8289a9f7e97195dab6b78"
+      "bytes": 55489,
+      "sha256": "cad942c1b103096c30040d55868af5b7de36808b15925a83119b80ff1861d1f5"
     },
     {
       "path": "tests/test_delivery.py",
-      "bytes": 77736,
-      "sha256": "9263e86337387ea91f5e0fb074824bd91c33bc7c5ed15f03b90a5aee24b348b0"
+      "bytes": 83062,
+      "sha256": "3a7a5325ddaea44f877c44d0ddcd1ec077b95e3b48cd9ae2c7c69915e5f32658"
     },
     {
       "path": "tests/test_package_public.py",
-      "bytes": 19734,
-      "sha256": "a12fc065a5a67cca35ff20ce5a553c2c4ac6d2540ec5c7465d747b46bd31a2fa"
+      "bytes": 20246,
+      "sha256": "df7b325317c75f3867f53e8c4be6b5ae4671116e80d9587f1ebc1133e5fee408"
     }
   ]
 }

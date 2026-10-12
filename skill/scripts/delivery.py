@@ -724,6 +724,21 @@ def unique_object(pairs):
 
 
 PROVENANCE = '04-data/PROVENANCE.json'
+# A script inside 04-data that is cited as a method needs no entry of its own. Only code-file names
+# qualify there, so a table cannot escape its own provenance by being cited as another entry's script.
+# The test is by name: a table deliberately renamed with a code suffix is not detected.
+SCRIPT_SUFFIXES = frozenset({
+    '.py', '.ipynb', '.r', '.rmd', '.qmd', '.sql', '.sh', '.bash', '.zsh', '.ps1', '.js', '.mjs', '.cjs',
+    '.jsx', '.ts', '.tsx', '.jl', '.m', '.do', '.ado', '.sas', '.sps', '.pl', '.rb', '.awk', '.go', '.rs',
+    '.c', '.cpp', '.java', '.kt', '.scala', '.php', '.lua'})
+
+
+def code_file(name):
+    return Path(name).suffix.lower() in SCRIPT_SUFFIXES
+
+
+def in_data_dir(name):
+    return nfc(name).startswith('04-data/')
 
 
 # Files macOS and iCloud write on their own, recognized by name AND content, so a data
@@ -803,6 +818,26 @@ def provenance_issues(root, files):
             raise ValueError(f'Ambiguous Unicode-normalized provenance path: {name}')
         return matches[0] if matches else exact
 
+    def case_twins(name):
+        # A citation that matches dossier files only when letter case is ignored fails closed on
+        # case-insensitive APFS and on Linux alike; name the real file(s) instead of "missing".
+        # lower() rather than casefold(): 'straße' and 'strasse' differ in spelling, not case.
+        if not isinstance(name, str) or nonportable_name(name):
+            return []
+        key = nfc(name).lower()
+        return sorted(relative_name(root, p) for p in files
+                      if nfc(relative_name(root, p)).lower() == key and nfc(relative_name(root, p)) != nfc(name))
+
+    def case_problem(where, field, cited):
+        twins = case_twins(cited)
+        if len(twins) == 1:
+            problem(where, 'Provenance path differs only by letter case from a dossier file',
+                    **{field: cited, 'actual': twins[0]})
+        elif twins:
+            problem(where, 'Provenance path differs only by letter case from several dossier files',
+                    **{field: cited, 'candidates': twins})
+        return bool(twins)
+
     def capture(source, path):
         # A capture is evidence in 03-sources, not its index, a receipt or OS metadata.
         return (source.startswith('03-sources/') and path.is_file() and nfc(source) != '03-sources/README.md'
@@ -816,7 +851,7 @@ def provenance_issues(root, files):
         entries.add(nfc(name))
         method = entry.get('method') if isinstance(entry, dict) else None
         script = method.get('script') if isinstance(method, dict) else None
-        if dossier_file(script) in files:
+        if dossier_file(script) in files and (code_file(script) or not in_data_dir(script)):
             scripts.add(nfc(script))  # the method stays exempt even when this entry has other faults
         if nonportable_name(name):
             problem(where, 'Invalid provenance entry name')
@@ -837,6 +872,11 @@ def provenance_issues(root, files):
             paths = [dossier_file(x) for x in sources]
             if None in paths:
                 problem(where, 'Invalid provenance source path')
+            elif any(path not in files and case_twins(x) for x, path in zip(sources, paths)):
+                # Letter-case mismatches are reported before the prefix and capture rules.
+                for source, path in zip(sources, paths):
+                    if path not in files and not case_problem(where, 'source', source):
+                        problem(where, 'Missing provenance source', source=source)
             elif nfc(where) in map(nfc, sources):
                 problem(where, 'Provenance source is the data file itself')
             elif PROVENANCE in sources:
@@ -859,7 +899,11 @@ def provenance_issues(root, files):
             elif script == PROVENANCE:
                 problem(where, 'Provenance script cannot be the provenance record')
             elif dossier_file(script) not in files:
-                problem(where, 'Missing provenance script', script=script)
+                if not case_problem(where, 'script', script):
+                    problem(where, 'Missing provenance script', script=script)
+            elif in_data_dir(script) and not code_file(script):
+                problem(where, 'Provenance script must be a code file', script=script,
+                        accepted=sorted(SCRIPT_SUFFIXES))
         # An entry for README.md or OS metadata that exists is harmless, not a missing file.
         if nfc(name) not in by_nfc and not (target is not None and target.is_file() and exempt(target)):
             problem(where, 'Provenance entry for missing data file')

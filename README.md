@@ -143,4 +143,4 @@ The previously disclosed two-case comparison fell below its predefined improveme
 
 From the package root, run local tests with `python3 -m unittest discover -s tests -v`. Optional-dependency skips are not verified successes. Build a new local package with `python3 scripts/package_public.py /path/to/new-package.zip`; the allowlist controls its contents and existing destinations are refused. Building does not publish.
 
-The current package identity is `0.1.0-beta.5`, recorded in [VERSION](VERSION). The implementation and documentation are licensed under [MIT](LICENSE). That license does not grant rights to third-party evidence collected in a dossier.
+The current package identity is `0.1.0-beta.7`, recorded in [VERSION](VERSION). The implementation and documentation are licensed under [MIT](LICENSE). That license does not grant rights to third-party evidence collected in a dossier.

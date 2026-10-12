@@ -359,15 +359,21 @@ class PackageTests(unittest.TestCase):
                          {'a-link-title', 'a-link-title-1'})
         self.assertEqual(markdown_anchors('# A\n# A\n# A-1\n'), {'a', 'a-1', 'a-1-1'})
 
+    # Value: protects=an installed copy named by the maintainer matches the packaged skill byte for byte;
+    # fails_when=an unrelated .claude/skills/sherlock near the clone is compared by accident;
+    # why_new=the old grandparent-path guess compared a clone with whatever install sat two levels up; seam=env
     def test_real_implementation_and_local_install_match(self):
         root = MODULE.parents[1]
         content = package.collect_files(root)
         self.assertGreater(len(content['skill/SKILL.md']), 1000)
-        installed = root.parent.parent / '.claude/skills/sherlock'
-        if installed.is_dir():
-            for name in content:
-                if name.startswith('skill/'):
-                    self.assertEqual(content[name], (installed / name.removeprefix('skill/')).read_bytes())
+        named = os.environ.get('SHERLOCK_INSTALLED_SKILL')
+        if not named:
+            self.skipTest('SHERLOCK_INSTALLED_SKILL not set: no installed copy to compare')
+        installed = Path(named)
+        self.assertTrue(installed.is_dir(), f'SHERLOCK_INSTALLED_SKILL is not a directory: {installed}')
+        for name in content:
+            if name.startswith('skill/'):
+                self.assertEqual(content[name], (installed / name.removeprefix('skill/')).read_bytes())
 
 
 if __name__ == '__main__':

@@ -16,6 +16,8 @@ Delivery checks cover missing/extra/changed files, malformed inventories, path e
 
 Beta.5 tests also cover `handoff` extraction of a terminal multi-block assistant message, receipt hashes, symlink refusal, trailing entries and malformed JSONL. Renderer tests cover image validation, Markdown-to-HTML/PDF links after relocation, heading-page reporting, fenced-code versus nested-list parsing, clipped table text, links in partial batches, and rollback of an entire replacement batch. Config tests exercise stale staging files; provenance tests cover NFC-equal citations and invisible method descriptions.
 
+Beta.7 provenance tests cover a table cited as another entry's script (it gets no exemption), accepted script types in any letter case, scripts outside `04-data/` with any name, and citations that differ only by letter case: a mis-cased directory, one or several case twins (the latter only on a case-sensitive filesystem) and a spelling variant that is not a case difference. The install-parity test compares the packaged `skill/` with an installed copy only when `SHERLOCK_INSTALLED_SKILL` names that directory; otherwise it is reported as skipped.
+
 See [helper usage](../skill/references/delivery-checks.md) for limits and exit codes. File checks do not establish factual accuracy, completeness of inaccessible host exports, analytical depth or user usefulness. An exact inventory also includes OS metadata if present; a new metadata file is a real inventory change, not something silently ignored.
 
 ## Public evaluation summary

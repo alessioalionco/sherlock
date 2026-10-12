@@ -769,6 +769,77 @@ class ProvenanceTests(DossierFixture):
         self.write('04-data/stray.py', 'print("unexplained")\n')
         self.assertEqual(self.reasons(), ('fail', {'Data file without provenance entry'}))
 
+    # Value: protects=a table cannot escape its own provenance by being cited as another entry's script;
+    # fails_when=any existing 04-data file cited as a script is exempted regardless of type;
+    # why_new=TODOS P2 item 5, confirmed open after beta.5; seam=none
+    def test_table_cited_as_script_is_not_exempt(self):
+        self.write('04-data/other.csv', 'x,y\n1,2\n')
+        self.provenance({'prices.csv': {'sources': ['03-sources/c01/page.html'],
+                                        'method': {'script': '04-data/other.csv'}}})
+        result = delivery.check(self.root)
+        found = {(e['path'], e['reason']) for e in result['errors']}
+        self.assertIn(('04-data/prices.csv', 'Provenance script must be a code file'), found)
+        self.assertIn(('04-data/other.csv', 'Data file without provenance entry'), found)
+
+    # Value: protects=common analysis languages remain valid methods, matched case-insensitively;
+    # fails_when=the code-file rule rejects a legitimate script; why_new=the rule is new; seam=none
+    def test_common_script_types_are_accepted(self):
+        (self.root / '04-data/extract_prices.py').unlink()
+        for name in ('extract.py', 'model.R', 'query.sql', 'notebook.ipynb', 'clean.sh', 'calc.jl', 'Fit.PY'):
+            with self.subTest(name=name):
+                for old in (self.root / '04-data').glob('*'):
+                    if old.name not in ('prices.csv', 'PROVENANCE.json'):
+                        old.unlink()
+                self.write(f'04-data/{name}', 'code\n')
+                self.provenance({'prices.csv': {'sources': ['03-sources/c01/page.html'],
+                                                'method': {'script': f'04-data/{name}'}}})
+                self.assertEqual(self.reasons(), ('partial', set()))
+
+    # Value: protects=a citation whose letter case differs from the real file fails closed and says why,
+    # on case-insensitive APFS as on Linux; fails_when=the reason is a bare "Missing" or the twin counts;
+    # why_new=TODOS P2 item 4 (beta.5 already fails closed, with a misleading reason); seam=none
+    def test_letter_case_variant_citation_fails_and_names_the_file(self):
+        self.provenance({'prices.csv': {'sources': ['03-sources/c01/PAGE.html'],
+                                        'method': {'script': '04-data/Extract_Prices.py'}}})
+        result = delivery.check(self.root)
+        errors = {(e['reason'], e.get('source') or e.get('script'), e.get('actual')) for e in result['errors']}
+        self.assertEqual(result['status'], 'fail')
+        self.assertIn(('Provenance path differs only by letter case from a dossier file',
+                       '03-sources/c01/PAGE.html', '03-sources/c01/page.html'), errors)
+        self.assertIn(('Provenance path differs only by letter case from a dossier file',
+                       '04-data/Extract_Prices.py', '04-data/extract_prices.py'), errors)
+
+    # Value: protects=scripts outside 04-data keep any file type, since they cannot hide a table there;
+    # fails_when=the code-file rule is applied to every cited script; why_new=review found false failures; seam=none
+    def test_script_type_rule_applies_only_inside_data(self):
+        (self.root / '04-data/extract_prices.py').unlink()
+        self.write('scripts/build.Makefile-task', 'all:\n')
+        self.provenance({'prices.csv': {'sources': ['03-sources/c01/page.html'],
+                                        'method': {'script': 'scripts/build.Makefile-task'}}})
+        self.assertEqual(self.reasons(), ('partial', set()))
+
+    # Value: protects=a mis-cased directory, several case twins and a spelling variant each get the right reason;
+    # fails_when=the prefix rule fires first, twins collapse to "missing", or casefold maps ß to ss; seam=none
+    def test_letter_case_reasons_cover_directories_twins_and_spelling(self):
+        self.provenance({'prices.csv': {'sources': ['03-Sources/c01/page.html'],
+                                        'method': {'script': '04-data/extract_prices.py'}}})
+        errors = delivery.check(self.root)['errors']
+        self.assertIn(('Provenance path differs only by letter case from a dossier file', '03-sources/c01/page.html'),
+                      {(e['reason'], e.get('actual')) for e in errors})
+        self.write('03-sources/c01/strasse.html', 'capture')
+        self.provenance({'prices.csv': {'sources': ['03-sources/c01/straße.html'],
+                                        'method': {'script': '04-data/extract_prices.py'}}})
+        self.assertIn('Missing provenance source', self.reasons()[1])
+        lower = self.write('03-sources/c01/twin.html', 'one')
+        upper = self.write('03-sources/c01/TWIN.html', 'two')
+        if lower.exists() and upper.exists() and not os.path.samefile(lower, upper):  # case-sensitive FS only
+            self.provenance({'prices.csv': {'sources': ['03-sources/c01/Twin.html'],
+                                            'method': {'script': '04-data/extract_prices.py'}}})
+            errors = delivery.check(self.root)['errors']
+            self.assertIn(('Provenance path differs only by letter case from several dossier files',
+                           ('03-sources/c01/TWIN.html', '03-sources/c01/twin.html')),
+                          {(e['reason'], tuple(e.get('candidates', ()))) for e in errors})
+
     def test_description_method_is_accepted(self):
         (self.root / '04-data/extract_prices.py').unlink()
         self.provenance({'prices.csv': {'sources': ['03-sources/c01/page.html'],
