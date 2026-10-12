@@ -375,7 +375,7 @@ class Links(HTMLParser):
 def document(path):
     text = path.read_text(encoding='utf-8')
     if path.suffix.lower() == '.md':
-        text = markdown_html(text)
+        text = markdown_html(text, repair_lists='lenient')  # same list structure and anchors as render
     parser = Links()
     parser.feed(text)
     if parser.has_base:
@@ -384,35 +384,85 @@ def document(path):
 
 
 LIST_MARKER = re.compile(r'^( *)(?:[-+*]|\d+[.)])\s')
+LIST_ITEM = re.compile(r'^( *)([-+*]|(\d+)[.)])( +|$)')
+THEMATIC_BREAK = re.compile(r'^ {0,3}([-*_])(?: *\1){2,} *$')
+BLOCK_START = re.compile(r'^ {0,3}(?:#{1,6}(?:\s|$)|>|\||<|```|~~~)')
+SETEXT_UNDERLINE = re.compile(r'^ {0,3}(?:=+|-+) *$')
 
 
-def markdown_input(text):
-    """Repair paragraph/list separation; refuse indentation with ambiguous hierarchy."""
+def expand_list_prefix(line):
+    """Expand tabs in the indentation and marker gap at their column positions (tab stop 4)."""
+    prefix = re.match(r'^[ \t]*(?:(?:[-+*]|\d+[.)])[ \t]+)?', line).group(0)
+    return prefix.expandtabs(4) + line[len(prefix):] if '\t' in prefix else line
+
+
+def markdown_input(text, strict=True):
+    """Re-indent CommonMark lists to Python-Markdown's four spaces per level; repair list separation.
+
+    CommonMark nests a line under a list item when its indent reaches the item's content column
+    (2 after "- ", 3 after "1. "); Python-Markdown needs four spaces per level. The rendered copy is
+    re-indented by that rule, so researcher text keeps its hierarchy without editing the source.
+    A fenced block inside a list item is refused when strict (the parser cannot nest fences).
+    """
     # Reuse the active extension's fence recognition so a longer/indented/unfinished
-    # delimiter never makes us mutate or reject content the parser sees as code.
+    # delimiter never makes us mutate content the parser sees as code; raw <pre> is literal too.
     from markdown.extensions.fenced_code import FencedBlockPreprocessor
     protected = set()
-    for match in FencedBlockPreprocessor.FENCED_BLOCK_RE.finditer(text):
-        first = text.count('\n', 0, match.start()) + 1
-        protected.update(range(first, first + match.group(0).count('\n') + 1))
-    result, list_active = [], False
+    for pattern in (FencedBlockPreprocessor.FENCED_BLOCK_RE,
+                    re.compile(r'^ {0,3}<pre\b.*?</pre>', re.S | re.I | re.M)):  # block-level only
+        for match in pattern.finditer(text):
+            first = text.count('\n', 0, match.start()) + 1
+            protected.update(range(first, first + match.group(0).count('\n') + 1))
+    result, stack, previous_blank = [], [], True  # stack: content columns of open items
+    previous_text = False  # the previous line was paragraph text (a top-level line or inside an item)
     for number, line in enumerate(text.split('\n'), 1):
         if number in protected:
+            stack, previous_blank, previous_text = [], False, False  # a top-level fence or <pre> closes lists
             result.append(line)
             continue
-        item = LIST_MARKER.match(line)
-        if item and len(item.group(1)) in (2, 3) and list_active:
-            raise ValueError(f'Ambiguous nested-list indentation at line {number}; use explicit 4/8-space levels')
-        if item and len(item.group(1)) == 0 and result:
-            previous = result[-1]
-            if (previous.strip() and not LIST_MARKER.match(previous)
-                    and not re.match(r'^\s*(?:#{1,6}\s|>|<|\|)', previous)):
-                result.append('')
-        if item:
-            list_active = True
-        elif line.strip() and not line.startswith(' '):
-            list_active = False
-        result.append(line)
+        if not line.strip():
+            result.append(line)
+            previous_blank, previous_text = True, False
+            continue
+        line = expand_list_prefix(line)
+        indent = len(line) - len(line.lstrip(' '))
+        inside = bool(stack) and indent >= stack[0]
+        item = LIST_ITEM.match(line)
+        # Indented code cannot interrupt paragraph text: after text, deep indent is a continuation.
+        code = not previous_text and ((stack and indent >= stack[-1] + 4) or (not stack and indent >= 4))
+        setext = previous_text and not stack and SETEXT_UNDERLINE.match(line)
+        if THEMATIC_BREAK.match(line) or code or setext:
+            item = None  # a rule, indented code, or a setext heading underline
+        if item and item.group(3) and item.group(3) != '1' and previous_text and (
+                not stack or indent >= stack[-1]):
+            item = None  # only "1." may interrupt a paragraph (CommonMark); "2024." stays text
+            line = re.sub(r'^( *\d+)([.)])', r'\1\\\2', line)  # escape so the parser keeps it as text
+        if strict and stack and indent >= stack[0] and not code and re.match(r' *(?:```|~~~)', line):
+            raise ValueError(f'Fenced code inside a list item at line {number} cannot be rendered; '
+                             'move it out of the list or indent it as code')
+        if item and (stack or indent < 4):
+            while stack and indent < stack[-1]:
+                stack.pop()
+            depth = len(stack)
+            if depth == 0 and result and not previous_blank:
+                prior = result[-1]
+                if (not LIST_MARKER.match(prior) and not re.match(r'^\s*(?:#{1,6}\s|>|<|\|)', prior)
+                        and item.group(3) in (None, '1')):
+                    result.append('')
+            gap = len(item.group(4))
+            column = indent + len(item.group(2)) + (gap if 1 <= gap <= 4 else 1)
+            stack.append(column)
+            result.append(' ' * (4 * depth) + line[indent:])
+        elif inside:
+            level = max(i for i, column in enumerate(stack) if indent >= column)
+            del stack[level + 1:]
+            result.append(' ' * (4 * (level + 1) + indent - stack[level]) + line[indent:])
+        else:
+            if previous_blank or BLOCK_START.match(line) or THEMATIC_BREAK.match(line):
+                stack = []  # a blank line or a new block ends the list; otherwise lazy continuation
+            result.append(line)
+        previous_blank = False
+        previous_text = not (code or setext or THEMATIC_BREAK.match(line) or BLOCK_START.match(line))
     return '\n'.join(result)
 
 
@@ -422,7 +472,7 @@ def markdown_html(text, repair_lists=False):
     def slugify(value, separator):
         value = re.sub(r'[^\w\s-]', '', value.lower())
         return re.sub(r'\s', separator, value).strip(separator)
-    return md.markdown(markdown_input(text) if repair_lists else text,
+    return md.markdown(markdown_input(text, strict=repair_lists != 'lenient') if repair_lists else text,
                        extensions=['tables', 'fenced_code', 'toc'],
                        extension_configs={'toc': {'slugify': slugify}})
 
@@ -505,6 +555,99 @@ def render_links(root, source, html_body, requested, pdf=False, image_names=None
     return HTML_ATTR.sub(replace, html_body)
 
 
+def visible_tokens(html):
+    visible = VisibleText()
+    visible.feed(html)
+    return text_tokens(''.join(visible.parts))
+
+
+def missing_text_report(html_body, missing):
+    """Name the tables whose text the PDF lost, so the author can restructure them."""
+    from html import unescape
+    visible_html = re.sub(r'<!--.*?-->|<(?:script|style|svg)\b[^>]*/>|<(script|style|svg)\b.*?</\1>', '',
+                          html_body, flags=re.S | re.I)
+    document = visible_tokens(visible_html)
+    per_table = []
+    for table in re.findall(r'<table\b.*?</table>', visible_html, re.S | re.I):
+        first_row = re.search(r'<tr\b.*?</tr>', table, re.S | re.I)
+        cells = [unescape(re.sub(r'<[^>]+>', '', c)).strip() for c in
+                 re.findall(r'<t[hd]\b[^>]*>(.*?)</t[hd]>', first_row.group(0) if first_row else '', re.S | re.I)]
+        per_table.append((visible_tokens(table), cells))
+    blamed, outside, unattributed = {}, [], []
+    for token, deficit in sorted(missing.items()):
+        in_tables = sum(tokens[token] for tokens, _ in per_table)
+        pinned = [i for i, (tokens, _) in enumerate(per_table, 1)
+                  if tokens[token] and deficit > document[token] - tokens[token]]
+        for i in pinned:
+            blamed.setdefault(i, []).append(token)
+        if deficit > in_tables:
+            outside.append(token)  # more copies lost than all tables hold
+        elif not pinned:
+            unattributed.append(token)
+    parts = []
+    for i in sorted(blamed):
+        cells = per_table[i - 1][1]
+        parts.append(f"table {i} ({len(cells)} columns, header '{' | '.join(cells)[:80]}'; "
+                     f"missing e.g. {', '.join(blamed[i][:5])})")
+    message = 'PDF text is missing or not extractable'
+    if parts:
+        message += ' in ' + '; '.join(parts)
+    if outside:
+        message += ('; also' if parts else '') + ' outside tables (e.g. ' + ', '.join(outside[:5]) + ')'
+    if unattributed:
+        message += ('; also' if parts or outside else '') + ' in an unidentified place (e.g. ' + ', '.join(unattributed[:5]) + ')'
+    if parts:
+        message += ('. Split, transpose or narrow those tables in authored text, or link to a preserved '
+                    'original instead of embedding it, then render again')
+    return message
+
+
+RENDER_TIMEOUT = 300  # seconds; SHERLOCK_RENDER_TIMEOUT overrides
+
+
+def render_pdf_guarded(html_body, images):
+    """Run render_pdf in a child process: a PyMuPDF layout hang must not block the caller forever."""
+    import subprocess
+    timeout = float(os.environ.get('SHERLOCK_RENDER_TIMEOUT', RENDER_TIMEOUT))
+    with tempfile.TemporaryDirectory(dir=os.path.realpath(tempfile.gettempdir())) as work:
+        work = Path(work)
+        (work / 'body.html').write_text(html_body, encoding='utf-8')
+        names = {}
+        for number, (name, content) in enumerate(images.items()):
+            (work / f'image-{number}').write_bytes(content)
+            names[name] = f'image-{number}'
+        (work / 'images.json').write_text(json.dumps(names), encoding='utf-8')
+        try:
+            run = subprocess.run([sys.executable, str(Path(__file__).resolve()), '_render-pdf', str(work)],
+                                 capture_output=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            raise Unverified(f'PDF renderer did not finish within {timeout:g} s (PyMuPDF can hang on some long '
+                             'tables that cross pages); split or shorten the long table, or deliver the HTML '
+                             'with pagination unverified')
+        result_file = work / 'result.json'
+        if not result_file.exists():
+            raise ValueError('PDF renderer failed: ' + run.stderr.decode('utf-8', 'replace')[-500:])
+        result = json.loads(result_file.read_text(encoding='utf-8'))
+        if result['error']:
+            raise (Unverified if result['error'] == 'Unverified' else ValueError)(result['message'])
+        return (work / 'out.pdf').read_bytes(), result['pages'], result['headings']
+
+
+def render_pdf_child(work):
+    """Child side of render_pdf_guarded; reports through files, never through stdout."""
+    work = Path(work)
+    names = json.loads((work / 'images.json').read_text(encoding='utf-8'))
+    images = {name: (work / file).read_bytes() for name, file in names.items()}
+    try:
+        data, pages, headings = render_pdf(module('pymupdf'), (work / 'body.html').read_text(encoding='utf-8'), images)
+        (work / 'out.pdf').write_bytes(data)
+        result = {'error': None, 'pages': pages, 'headings': headings}
+    except (Unverified, ValueError) as exc:
+        result = {'error': 'Unverified' if isinstance(exc, Unverified) else 'ValueError', 'message': str(exc)}
+    (work / 'result.json').write_text(json.dumps(result), encoding='utf-8')
+    return 0
+
+
 def render_pdf(pdfmod, html_body, images):
     archive = pdfmod.Archive()
     for name, content in images.items():
@@ -526,7 +669,7 @@ def render_pdf(pdfmod, html_body, images):
         missing = text_tokens(''.join(visible.parts)) - text_tokens(
             ' '.join(page.get_text() for page in pdf))
         if missing:
-            raise Unverified('PDF text is missing or not extractable; inspect long table cells before delivery')
+            raise Unverified(missing_text_report(html_body, missing))
         return pdf.tobytes(garbage=4, deflate=True), len(pdf), positions
 
 
@@ -630,7 +773,7 @@ def render(root, documents, replace=False):
                 'renderer': 'Python-Markdown', 'markdown_version': getattr(md, '__version__', 'unknown')}
         if not partial:
             pdf_body = render_links(root, path, body, requested, pdf=True, image_names=image_names)
-            data, pages, headings = render_pdf(pdfmod, pdf_body, resources)
+            data, pages, headings = render_pdf_guarded(pdf_body, resources)
             outputs[pdf_path] = data
             item.update({'pdf': relative_name(root, pdf_path), 'pages': pages,
                          'headings': headings, 'pdf_renderer': 'PyMuPDF',
@@ -1121,6 +1264,8 @@ def portable_pdf(root, source, output):
 
 
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == '_render-pdf':  # internal: render_pdf_guarded's child
+        return render_pdf_child(sys.argv[2])
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
     for name in ('inventory', 'check', 'capture', 'handoff', 'render', 'portable-pdf'):

@@ -2,6 +2,7 @@
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import importlib.util
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -469,6 +470,96 @@ class RenderTests(DossierFixture):
         self.assertFalse(doc.with_suffix('.html').exists())
         self.assertFalse(doc.with_suffix('.pdf').exists())
 
+    # Value: protects=each reviewer reproducer for the list normalizer keeps CommonMark meaning;
+    # fails_when=a closed list leaks into the next block, a year becomes numbering, code or <pre> is
+    # re-indented, tabs flatten nesting, or a rule becomes an item; why_new=beta.8 review; seam=none
+    def test_list_normalizer_edge_cases_keep_commonmark_meaning(self):
+        html = lambda text: delivery.markdown_html(text, repair_lists=True)
+        out = html('- a\n  - b\n# Heading\n  - c\n')
+        self.assertNotIn('<pre>', out); self.assertIn('<li>c</li>', out)
+        out = html('- a\n\n para\n\n  - x\n')
+        self.assertNotIn('<pre>', out); self.assertIn('<li>x</li>', out)
+        out = html('In the year\n2024. was good\n')
+        self.assertIn('2024', out); self.assertNotIn('<ol>', out)
+        self.assertIn('2024. q', html('- p\n  2024. q\n'))
+        self.assertIn('- literal', html('- p\n\n        - literal\n').split('<code>')[1])
+        self.assertEqual(self.list_depths(html('- p\n  -\tc\n    - g\n'))['g'], 3)
+        self.assertIn('\n  - literal\n', html('<pre>\n  - literal\n</pre>\n'))
+        out = html('* * *\n  text\n')
+        self.assertIn('<hr', out); self.assertNotIn('<li>', out)
+
+    # Value: protects=second-round reviewer reproducers; fails_when=a setext underline becomes an item,
+    # numbering after a heading is demoted, code with a fence is refused, an inline <pre> example closes
+    # a list, or a scripted table is blamed; why_new=beta.8 verification pass; seam=none
+    def test_list_normalizer_second_round_cases(self):
+        html = lambda text: delivery.markdown_html(text, repair_lists=True)
+        self.assertIn('<h2 id="intro">', html('Intro\n-\n\n[go](#intro)\n'))
+        self.assertIn('<ol>', html('# Heading\n2. item\n'))
+        self.assertNotIn('\\', html('# Heading\n\n    2024. literal\n'))
+        self.assertIn('```', html('- parent\n\n        ```\n        code\n        ```\n'))
+        depths = self.list_depths(html('- parent\n  - child `<pre>x</pre>`\n  - sibling\n'))
+        self.assertEqual((depths['parent'], depths['sibling']), (1, 2))
+        from collections import Counter
+        self.assertNotIn('table 1', delivery.missing_text_report(
+            '<script>const t = "<table><tr><td>lost</td></tr></table>";</script><p>lost</p>', Counter(lost=1)))
+        self.assertIn('table 1', delivery.missing_text_report(
+            '<svg/><table><tr><td>lost</td></tr></table><svg></svg>', Counter(lost=1)))
+        self.assertIn('2. c', html('- a\n      b\n  2. c\n'))
+
+    # Value: protects=check and render resolve the same anchors and the renderer refuses what it cannot
+    # nest; fails_when=check parses lists differently from render or a fence inside an item is mangled
+    # silently; why_new=beta.8 review found #sub resolving to different headings; seam=none
+    def test_check_and_render_share_list_structure_and_refuse_nested_fences(self):
+        text = '- a\n\n  ## Sub\n\n## Sub\n\n[go](#sub)\n'
+        ids = lambda out: re.findall(r'id="([^"]+)"', out)
+        self.assertEqual(ids(delivery.markdown_html(text, repair_lists='lenient')),
+                         ids(delivery.markdown_html(text, repair_lists=True)))
+        fenced = '- a\n\n  ```python\n  if x:\n      return 1\n  ```\n'
+        with self.assertRaisesRegex(ValueError, 'Fenced code inside a list item at line 3'):
+            delivery.markdown_html(fenced, repair_lists=True)
+        self.assertIn('if x', delivery.markdown_html(fenced, repair_lists='lenient'))
+
+    # Value: protects=the clipped-text report never blames an invisible table and keeps outside losses;
+    # fails_when=commented tables are scanned, outside losses are swallowed by a table, or the table
+    # advice appears with no table named; why_new=beta.8 review; seam=none
+    def test_missing_text_report_attribution(self):
+        from collections import Counter
+        report = delivery.missing_text_report
+        self.assertNotIn('table 1', report('<!-- <table><tr><td>x</td></tr></table> --><p>x</p>', Counter(x=1)))
+        both = report('<table><tr><td>x</td></tr></table><p>x</p>', Counter(x=2))
+        self.assertIn('table 1', both); self.assertIn('outside tables', both)
+        self.assertNotIn('Split, transpose', report('<p>lost words</p>', Counter(lost=1)))
+        self.assertIn('R&D', report('<table><tr><th>R&amp;D</th></tr><tr><td>gone</td></tr></table>', Counter(gone=1)))
+
+    # Value: protects=an agent calling render never blocks forever on a PyMuPDF layout hang;
+    # fails_when=the PDF is built in-process or the timeout is not enforced; why_new=a real Jobim
+    # table followed by a rule hung PyMuPDF's Story for more than seven minutes; seam=env timeout
+    def test_pdf_renderer_timeout_is_partial_not_a_hang(self):
+        doc = self.write('quick.md', '# Quick\n\nBody.\n')
+        with mock.patch.dict(os.environ, {'SHERLOCK_RENDER_TIMEOUT': '0.001'}):
+            with self.assertRaisesRegex(delivery.Unverified, 'did not finish within'):
+                delivery.render(self.root, [doc])
+        self.assertFalse(doc.with_suffix('.pdf').exists())
+        self.assertEqual(delivery.render(self.root, [doc])['status'], 'created')
+
+    # Value: protects=the author can find and fix a clipped table instead of a generic warning;
+    # fails_when=the refusal does not name the table, its header or a missing word;
+    # why_new=the real Jobim full report had 12 wide tables and only a generic message; seam=none
+    def test_clipped_wide_table_is_named_in_the_refusal(self):
+        header = '| ' + ' | '.join(f'Column{i}' for i in range(10)) + ' |'
+        row = '| ' + ' | '.join(f'WIDECELL{i}' + 'x' * 40 + ' de' for i in range(10)) + ' |'
+        # 'de' also appears in the small table: a common word lost elsewhere must not blame it.
+        doc = self.write('wide.md', '# Report\n\n| A | B |\n|---|---|\n| de | small |\n\n'
+                         + header + '\n|' + '---|' * 10 + '\n' + row + '\n')
+        with self.assertRaises(delivery.Unverified) as caught:
+            delivery.render(self.root, [doc])
+        message = str(caught.exception)
+        self.assertIn('PDF text is missing', message)
+        self.assertIn('table 2', message)
+        self.assertIn('Column0', message)
+        self.assertRegex(message, r'missing e\.g\. (column|widecell)\d')
+        self.assertNotIn('table 1 ', message)
+
     # Value: protects=links from a rendered peer when a partial replacement preserves no HTML;
     # fails_when=requested input alone causes a link to nonexistent HTML;
     # why_new=existing link test renders both targets successfully; seam=none
@@ -487,13 +578,13 @@ class RenderTests(DossierFixture):
     # why_new=single-document rollback cannot catch cross-document inconsistency; seam=none
     def test_multiple_documents_validate_and_replace_as_one_batch(self):
         first = self.write('first.md', '# First\n\n[Next](second.md)')
-        second = self.write('second.md', '- parent\n  - child\n')
+        second = self.write('second.md', '![chart](missing-chart.png)\n')
         outputs = [first.with_suffix('.html'), first.with_suffix('.pdf'),
                    second.with_suffix('.html'), second.with_suffix('.pdf')]
         for output in outputs:
             output.write_bytes(('old ' + output.name).encode())
         before = {output: output.read_bytes() for output in outputs}
-        with self.assertRaisesRegex(ValueError, 'Ambiguous nested-list'):
+        with self.assertRaises(ValueError):
             delivery.render(self.root, [first, second], replace=True)
         self.assertEqual({output: output.read_bytes() for output in outputs}, before)
 
@@ -552,17 +643,53 @@ class RenderTests(DossierFixture):
         result = delivery.check(moved, moved / 'inventory.json')
         self.assertEqual(result['status'], 'pass', result)
 
-    # Value: protects=argument hierarchy and code examples from silent list rewriting;
-    # fails_when=0/2/4 nesting is flattened or a code fence is treated as a list;
-    # why_new=outside Codex found this semantic counterexample; seam=none
-    def test_ambiguous_nested_list_is_refused_but_fenced_marker_is_safe(self):
-        bad = self.write('bad.md', '- parent\n  - child\n    - grandchild\n')
-        with self.assertRaisesRegex(ValueError, 'line 2.*4/8-space'):
-            delivery.render(self.root, [bad])
-        self.assertFalse(bad.with_suffix('.html').exists())
-        good = self.write('good.md', 'Example\n\n```text\n  - literal\n```\n\n- parent\n    - child\n        - grandchild\n')
-        self.assertEqual(delivery.render(self.root, [good])['status'], 'created')
-        # A fence-looking line with trailing text is code, not a closing fence.
+    @staticmethod
+    def list_depths(html):
+        """Depth of each <li> by its text, from the rendered HTML."""
+        from html.parser import HTMLParser
+        class Depth(HTMLParser):
+            def __init__(self):
+                super().__init__(); self.depth, self.items, self.open = 0, {}, []
+            def handle_starttag(self, tag, attrs):
+                if tag in ('ul', 'ol'): self.depth += 1
+                if tag == 'li': self.open.append([self.depth, ''])
+            def handle_endtag(self, tag):
+                if tag in ('ul', 'ol'): self.depth -= 1
+                if tag == 'li':
+                    depth, text = self.open.pop(); self.items[text.split()[0] if text.split() else ''] = depth
+            def handle_data(self, data):
+                for item in self.open[-1:]:
+                    if not item[1].strip(): item[1] += data
+        parser = Depth(); parser.feed(html)
+        return parser.items
+
+    # Value: protects=CommonMark nesting written by researchers (2 spaces under "- ", 3 under "1. ")
+    # renders with its hierarchy instead of being refused or flattened; fails_when=the old refusal
+    # returns or levels are guessed by raw indent; why_new=the real Jobim full report (357 such lines)
+    # could not be rendered by beta.7 and was silently flattened by beta.4's renderer; seam=none
+    def test_commonmark_nesting_is_rendered_with_its_hierarchy(self):
+        doc = self.write('nested.md', '- alpha\n  - beta\n    - gamma\n- delta\n\n'
+                         '1. **Step.** Lead text\n   - first\n   - second\n2. next\n')
+        source = doc.read_bytes()
+        self.assertEqual(delivery.render(self.root, [doc])['status'], 'created')
+        depths = self.list_depths(doc.with_suffix('.html').read_text(encoding='utf-8'))
+        self.assertEqual({k: depths[k] for k in ('alpha', 'beta', 'gamma', 'delta', 'first', 'second', 'next')},
+                         {'alpha': 1, 'beta': 2, 'gamma': 3, 'delta': 1, 'first': 2, 'second': 2, 'next': 1})
+        self.assertEqual(doc.read_bytes(), source)  # the Markdown source is never rewritten
+
+    # Value: protects=explicit 4/8-space nesting, continuation paragraphs and fenced code keep working;
+    # fails_when=normalization double-indents 4-space input, drops continuation text into the parent,
+    # or rewrites lines inside a fence; why_new=the normalizer rewrites indentation; seam=none
+    def test_list_normalization_keeps_four_space_lists_continuations_and_code(self):
+        doc = self.write('mixed.md', 'Intro\n\n```text\n  - literal\n```\n\n- parent\n    - child\n        - grand\n'
+                         '- other\n  continuation of other\n\n  second paragraph of other\n\nAfter the list.\n')
+        self.assertEqual(delivery.render(self.root, [doc])['status'], 'created')
+        html = doc.with_suffix('.html').read_text(encoding='utf-8')
+        depths = self.list_depths(html)
+        self.assertEqual((depths['parent'], depths['child'], depths['grand'], depths['other']), (1, 2, 3, 1))
+        self.assertIn('  - literal', html)
+        self.assertIn('second paragraph of other', html.split('</ul>')[-2])  # still inside the list
+        self.assertIn('<p>After the list.</p>', html)
         import markdown
         for tricky in ('```text\n``` example\n  - literal\n```\n',
                        '```text\n````\n  - literal\n```\n',
