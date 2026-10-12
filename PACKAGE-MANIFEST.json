@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0-beta.7",
+  "version": "0.1.0-beta.8",
   "license": "MIT",
   "kind": "implementation_only",
   "path_base": "zip_root",
@@ -27,12 +27,12 @@
     {
       "path": "README.md",
       "bytes": 13792,
-      "sha256": "548859bd52cefc3cc763d1372cdd73967da345ed93dc5271955ccd4a138c498a"
+      "sha256": "95fdf84f2104388f530ee558a2f28bab1cff2ab54dda6b89f21479c684cd5dfc"
     },
     {
       "path": "VERSION",
       "bytes": 13,
-      "sha256": "9936cd2e59f9463923dff69056021762bfe62ea5eb8c6cb36ba9eb38cfb15e28"
+      "sha256": "37330b4663a72f15944dd24d638c66b57f20a55ba3c06174a8cd86789b507193"
     },
     {
       "path": "docs/ACCEPTANCE-CRITERIA.md",
@@ -51,8 +51,8 @@
     },
     {
       "path": "docs/TESTING.md",
-      "bytes": 7888,
-      "sha256": "4fd734fbc119b2b40d5381d6ff003fa7d0c0937a073de81cd6eb66e511affb5f"
+      "bytes": 8509,
+      "sha256": "081380257f30554b0f66a1764f6617af134bdcf8768207a06b9f8c0e2a2507c6"
     },
     {
       "path": "docs/WORKSPACE-ARCHITECTURE.md",
@@ -146,13 +146,13 @@
     },
     {
       "path": "skill/references/delivery-checks.md",
-      "bytes": 15051,
-      "sha256": "6490017e5f93c246c3242b27c66b8c7a8874c2b8c5db69e49ddfd87e1d8d9796"
+      "bytes": 15992,
+      "sha256": "5555a54e3546c84f7df31c9c92597b3106ae6e5a090d22e2cfcfca80f271d34b"
     },
     {
       "path": "skill/references/studies-and-delivery.md",
-      "bytes": 10750,
-      "sha256": "72e99371b286430d8b2a18ff0816a3f853e68280d2dee89adbe913ab27fcc214"
+      "bytes": 11168,
+      "sha256": "ace4bf6ca07c486d8bcdc05bdc42a8e5bb47fef4a86ae6ba5e033df7a3b9ec69"
     },
     {
       "path": "skill/references/workspace-and-updates.md",
@@ -161,13 +161,13 @@
     },
     {
       "path": "skill/scripts/delivery.py",
-      "bytes": 55489,
-      "sha256": "cad942c1b103096c30040d55868af5b7de36808b15925a83119b80ff1861d1f5"
+      "bytes": 63858,
+      "sha256": "fc0ed801c97b6a31e7e60b3550f66225620358d7837c39e641af24636171d0d1"
     },
     {
       "path": "tests/test_delivery.py",
-      "bytes": 83062,
-      "sha256": "3a7a5325ddaea44f877c44d0ddcd1ec077b95e3b48cd9ae2c7c69915e5f32658"
+      "bytes": 91779,
+      "sha256": "69bea53073b9bc9f79594f2ffabf4963193585b44d54624de0a531c543f52d62"
     },
     {
       "path": "tests/test_package_public.py",
